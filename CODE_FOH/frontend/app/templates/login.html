@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-color: #f4f4f9;
+        }
+
+        /* Update specific styles for the login form */
+        .lform {
+            width: 300px;
+            margin: 50px auto;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .lform h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .lform label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .lform input[type="text"], .lform input[type="password"] {
+            width: 96%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .lform input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .lform .button {
+            background-color: #007BFF;
+            font-weight: bold;
+            color: black;
+            cursor: pointer;
+        }
+
+        .lform .button:hover {
+            background-color: #0254ac;
+        }
+
+        .lform .g-recaptcha {
+            margin-bottom: 15px;
+        }
+
+        .lform p {
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .lform a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        .lform a:hover {
+            text-decoration: underline;
+        }
+
+        /* Styles for webcam popup */
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+        }
+
+        #webcamPopup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+        }
+
+        #webcamPopup input {
+            width: 95%;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        #webcamPopup video {
+            width: 100%;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        #webcamPopup button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #webcamPopup button:hover {
+            background-color: #0158b6;
+        }
+
+        #closeWebcam {
+            background-color: #f44336;
+        }
+
+        #closeWebcam:hover {
+            background-color: #e53935;
+        }
+
+        #faceRecognitionButton {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color:#007BFF;
+            color: black;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        #faceRecognitionButton:hover {
+            background-color: #015cbd;
+        }
+
+        #faceRecognitionButton:active {
+            background-color:#007BFF;
+        }
+
+        #faceRecognitionButton:focus {
+            outline: none;
+        }
+    </style>
+    <title>Login</title>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+<body>
+    <header>
+        <div class="topnav">
+            <div class="login">
+                <a href="{{ url_for('register') }}">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="lform">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required><br>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required><br>
+
+            <!-- reCAPTCHA widget -->
+            <div class="g-recaptcha" data-sitekey="6LdtC40qAAAAAER3z6dULo3ggS80xz5wAlQV-rfF"></div><br>
+
+            <p id="message" class="flash"></p>
+            <input type="submit" value="Login" class="button">
+            <button type="button" id="faceRecognitionButton">Log in With Face</button>
+            <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a></p>
+        </form>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Fox Of Hood</p>
+    </footer>
+
+    <!-- Webcam Popup and Overlay -->
+    <div id="overlay"></div>
+    <div id="webcamPopup">
+        <h3>Please enter your username for face recognition:</h3>
+        <input type="text" id="popupUsername" placeholder="Enter your username" required><br>
+        <video id="webcam" autoplay></video>
+        <button id="loginWithFaceButton">Login with Face</button>
+        <button id="closeWebcam">Close</button>
+    </div>
+
+    <script>
+        // Handle login form submission
+        document.getElementById("loginForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            const recaptchaResponse = grecaptcha.getResponse();
+
+            if (!recaptchaResponse) {
+                document.getElementById("message").textContent = "Please complete the reCAPTCHA.";
+                document.getElementById("message").style.color = "red";
+                return;
+            }
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/api/user/login", {
+                    method: "POST",
+                    credentials: 'include',
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ username, password, recaptcha_response: recaptchaResponse })
+                });
+
+                const data = await response.json();
+                const messageElement = document.getElementById("message");
+
+                if (response.ok) {
+                    sessionStorage.setItem("session", JSON.stringify({ username }));
+                    messageElement.textContent = data.message;
+                    messageElement.style.color = "green";
+                    if (username === "administration") {
+                        window.location.href = "{{ url_for('admin') }}";
+                    } else {
+                        window.location.href = "{{ url_for('index') }}";
+                    }
+                } else {
+                    messageElement.textContent = data.error;
+                    messageElement.style.color = "red";
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById("message").textContent = "An error occurred. Please try again.";
+            }
+        });
+
+        // Handle face recognition login
+        const faceRecognitionButton = document.getElementById("faceRecognitionButton");
+        const webcamPopup = document.getElementById("webcamPopup");
+        const overlay = document.getElementById("overlay");
+        const loginWithFaceButton = document.getElementById("loginWithFaceButton");
+        const closeWebcamButton = document.getElementById("closeWebcam");
+        const video = document.getElementById("webcam");
+
+        faceRecognitionButton.addEventListener("click", async () => {
+            overlay.style.display = "block";
+            webcamPopup.style.display = "block";
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (error) {
+                console.error("Error accessing webcam:", error);
+            }
+        });
+
+        loginWithFaceButton.addEventListener("click", () => {
+            const usernameFromPopup = document.getElementById("popupUsername").value;
+
+            if (!usernameFromPopup) {
+                alert("Please enter your username.");
+                return;
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext("2d");
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const photoData = canvas.toDataURL("image/png");
+
+            fetch("http://127.0.0.1:5000/api/user/face_recognition_login", {
+                method: "POST",
+                credentials: 'include',
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    username: usernameFromPopup,
+                    photoData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    sessionStorage.setItem("session", JSON.stringify({ username: usernameFromPopup, totalCash: data.totalCash }));
+                    alert("Face recognition successful!");
+                    if (data.user === "administration") {
+                        window.location.href = "{{ url_for('admin') }}";
+                    } else {
+                        window.location.href = "{{ url_for('index') }}";
+                    }
+                } else {
+                    alert(data.error || "Face recognition failed. Try again.");
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Error during face recognition.");
+            });
+        });
+
+        closeWebcamButton.addEventListener("click", () => {
+            overlay.style.display = "none";
+            webcamPopup.style.display = "none";
+            const stream = video.srcObject;
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+        });
+    </script>
+</body>
+</html>

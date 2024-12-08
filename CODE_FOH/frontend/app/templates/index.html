@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Portfolio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Container for the portfolio */
+        #portfolio {
+            text-align: center;
+            padding: 40px;
+            background-color: rgba(255, 255, 255, 0.9); /* Semi-transparent background */
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            margin: 50px auto;
+        }
+
+        /* Heading styles */
+        #portfolio h1 {
+            font-size: 36px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* Portfolio section styling */
+        #portfolio-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            gap: 20px;
+        }
+
+        /* Balance section */
+        #balance {
+            width: 30%;
+            margin: 10px;
+            background-color: #f5f5fa;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* General table styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+
+        /* Style for the first row (headers) */
+        th {
+            background-color: #707070;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;  /* Light grey for alternate rows */
+        }
+
+        tr:nth-child(odd) {
+            background-color: white;  /* Light grey for alternate rows */
+        }
+
+        /* Row Hover effect */
+        tr:hover {
+            background-color: #e6f7ff;  /* Light blue background on hover */
+            transform: scale(1.01);  /* Slightly enlarge row on hover for interactivity */
+            transition: transform 0.2s ease-in-out;
+        }
+
+        /* Stocks owned section */
+        #stocks_owned {
+            width: 60%;
+            background-color: #f5f5fa;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        /* Styling for stock rows */
+        #stocks_owned td {
+            font-size: 16px;
+        }
+
+        /* Styling the balance table */
+        #balance table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        /* Profit and Change Text Color */
+        .change-cell {
+            font-weight: bold;
+            color: green; /* Green for positive changes */
+        }
+
+        .profit-cell {
+            font-weight: bold;
+            color: green; /* Green for profit */
+        }
+
+        /* Color for Negative Values */
+        .negative-change {
+            color: rgb(153, 0, 0); /* Red for negative changes */
+        }
+
+        .negative-profit {
+            color: rgb(153, 0, 0); /* Red for loss */
+        }
+    </style>
+
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <!-- Main portfolio section -->
+    <main>
+        <div id="portfolio">
+            <h1>Welcome, <span id="username"></span>!</h1>
+            <div id="portfolio-section">
+                <!-- Balance section -->
+                <div id="balance">
+                    <h2>Current Balance</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>$<span id="totalCash"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Stocks owned section -->
+                <div id="stocks_owned">
+                    <h2>Stocks Owned</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Stock</th>
+                                <th>Purchase Price</th>
+                                <th>Current Price</th>
+                                <th>Change %</th>
+                                <th>Profit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dynamic rows inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Stocks chart -->
+            <div id="stocks-chart" class="chart-container">
+                <svg width="600" height="400">
+                    <g transform="translate(60,20)">
+                        <g class="x-axis"></g>
+                        <g class="y-axis"></g>
+                    </g>
+                </svg>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Fox Of Hood</p>
+    </footer>
+
+    <!-- Script for fetching user data and portfolio data -->
+    <script type="module">
+        import { drawScatterPlotChart } from "{{ url_for('static', filename='utils/chartUtils.js') }}";
+
+        // Fetch and display user data
+        async function fetchUserData() {
+            const sessionDataString = sessionStorage.getItem("session");
+
+            if (sessionDataString) {
+                const sessionData = JSON.parse(sessionDataString);
+                const username = sessionData.username || "Guest";
+
+                const response = await fetch("http://127.0.0.1:5000/api/user/index", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username })
+                });
+
+                const result = await response.json();
+                const totalCash = result.totalCash;
+                document.getElementById("username").textContent = username || "Guest";
+                document.getElementById("totalCash").textContent = totalCash ? parseFloat(totalCash).toFixed(2) : "0.00";
+            }
+        }
+
+        // Fetch and display portfolio data
+        async function fetchPortfolio() {
+    try {
+        const response = await fetch("http://127.0.0.1:5000/api/transaction/portfolio", {
+            method: "GET",
+            credentials: "include",
+        });
+
+        if (!response.ok) throw new Error("Error fetching portfolio data");
+
+        const data = await response.json();
+        const stocksTableBody = document.querySelector("#stocks_owned tbody");
+        stocksTableBody.innerHTML = "";
+
+        const scatterPlotData = data.map(stock => {
+            const row = document.createElement("tr");
+
+            const stockCell = document.createElement("td");
+            stockCell.textContent = `${stock.ticker} (${stock.numShares} shares)`;
+
+            const priceAtPurchaseCell = document.createElement("td");
+            const currentPriceCell = document.createElement("td");
+            const changeCell = document.createElement("td");
+            const profitCell = document.createElement("td");
+
+            // Safeguard against missing or invalid data
+            const purchasePrice = stock.purchasePrice || 0;
+            const currentPrice = stock.currentPrice || 0;
+
+            let priceChange = 0, priceChangePercent = 0;
+            if (purchasePrice > 0) {
+                priceChange = currentPrice - purchasePrice;
+                priceChangePercent = (priceChange / purchasePrice) * 100;
+            }
+
+            priceAtPurchaseCell.textContent = `$${purchasePrice.toFixed(2)}`;
+            currentPriceCell.textContent = `$${currentPrice.toFixed(2)}`;
+            changeCell.textContent = `${priceChangePercent.toFixed(2)}%`;
+            profitCell.textContent = `$${priceChange.toFixed(2)}`;
+
+            changeCell.style.color = priceChangePercent >= 0 ? "green" : "red";
+            profitCell.style.color = priceChange >= 0 ? "green" : "red";
+
+            row.append(stockCell, priceAtPurchaseCell, currentPriceCell, changeCell, profitCell);
+            stocksTableBody.appendChild(row);
+
+            return { ticker: stock.ticker, profit: priceChange, change: priceChangePercent };
+        });
+        // // Sample data for the chart
+        // const testdata = [
+        //     { ticker: "Example stock 1", change: -0.05, profit: -5.67 },
+        //     { ticker: "Example stock 2", change: 1.35, profit: 5.20 }
+        // ];
+        // drawScatterPlotChart(testdata);
+        drawScatterPlotChart(scatterPlotData);
+    } catch (error) {
+        console.error("Error fetching portfolio data:", error);
+    }
+}
+        fetchUserData();
+        fetchPortfolio();
+        setInterval(fetchPortfolio, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Log</title>
+    <style>
+        /* Internal CSS for log page styling */
+
+        /* Body background for a cleaner look */
+        body {
+            background-color: #f5f5f5;  /* Light grey background */
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* Enhance the table headers with a gradient and better styling */
+        
+
+        /* Styling for each table header cell */
+        .logTable th {
+            padding: 15px 20px;
+            border: 1px solid #ccc;
+            font-size: 1.1rem;  /* Slightly larger font size for emphasis */
+            text-transform: uppercase;  /* Uppercase letters for better readability */
+            letter-spacing: 1px;  /* Space out the letters slightly */
+            background-color: #707070;  /* Green background for header */
+            color: #fff;  /* White text for contrast */
+            text-align: center;
+
+        }
+
+        /* Styling for table rows */
+        .logTable td {
+            padding: 12px 15px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        /* Table rows: Adjust background color and row height for better spacing */
+        .logTable tr {
+            background-color: #fff;  /* White rows for better contrast */
+        }
+
+        .logTable tr:nth-child(even) {
+            background-color: #f9f9f9;  /* Light grey for alternate rows */
+        }
+
+        .logTable tr:hover {
+            background-color: #e6f7ff;  /* Light blue background on hover */
+            transform: scale(1.01);  /* Slightly enlarge row on hover for interactivity */
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .logTable thead {
+
+            color: #fff;
+
+            text-align: left;
+            border: 2px solid white;
+            border-color: white;
+        }
+
+        /* Ensure the table takes full width of the container */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        /* Style the log section heading */
+        main h2 {
+            text-align: center;
+            color: #333;
+            padding: 20px 0;
+            font-size: 2rem;
+        }
+
+        /* Optional: Adding some margin and shadow to the table container */
+        main div {
+            margin: 20px auto;
+            max-width: 1000px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'header.html' %}
+    <main>
+        
+        <div>
+            <h2>Activity Log</h2>
+            <table class="logTable">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>Stock</th>
+                        <th>Date</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody id="logTable">
+                    <!-- Log entries will be populated here via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        // Fetch log entries on page load
+        async function fetchLogEntries() {
+            try {
+                const response = await fetch("http://127.0.0.1:5000/api/log/entries", { method: "GET", credentials:"include" });
+                if (!response.ok) throw new Error("Error fetching log entries");
+
+                const logEntries = await response.json();
+                const logTable = document.getElementById("logTable");
+                logTable.innerHTML = ''; // Clear previous data
+
+                logEntries.forEach(entry => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${entry.eventName}</td>
+                        <td>${entry.stockSold ?? entry.stockBought ?? "N/A"}</td>
+                        <td>${entry.date}</td>
+                        <td>${parseFloat(entry.totalCash).toFixed(2) ?? "N/A"}</td>
+                    `;
+                    logTable.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error fetching log entries:", error);
+                alert("Failed to load log entries. Please try again.");
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", fetchLogEntries);
+    </script>
+</body>
+</html>

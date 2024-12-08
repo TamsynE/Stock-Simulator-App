@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Register</title>
+    <style>
+        /* Registration page specific styling */
+        body {
+            background-color: #eaeaea;
+        }
+
+        .rform {
+            background: white;
+            padding: 30px;
+            margin: 50px auto;
+            max-width: 400px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .rform h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .rform form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .rform label {
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        .rform input[type="text"],
+        .rform input[type="password"] {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .rform input[type="submit"] {
+            background: #007BFF;
+            color: black;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .rform input[type="submit"]:hover {
+            background: #0154ad;
+        }
+
+        .rform p {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .rform a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        .rform a:hover {
+            text-decoration: underline;
+        }
+
+    </style>
+
+</head>
+<body>
+    <header>
+        <div class="topnav">
+            <div class="login">
+                <a href="{{ url_for('login') }}">Login</a>
+            </div>
+        </div>
+    </header>
+    <div class="rform">
+        <h2>Registration</h2>
+        <form id="registerForm">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            <p id="message" class="flash"></p>
+            <input type="submit" value="Register">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+        </form>
+    </div>
+    <footer>
+        <p>&copy; 2024 Fox Of Hood</p>
+    </footer>
+
+    <div id="overlay"></div>
+    <div id="webcamPopup">
+        <video id="webcam" autoplay></video>
+        <button id="takePhotoButton">Take Photo</button>
+        <button id="closeWebcam">Close</button>
+    </div>
+
+
+
+    <script>
+        const registerForm = document.getElementById("registerForm");
+        const webcamPopup = document.getElementById("webcamPopup");
+        const overlay = document.getElementById("overlay");
+        const takePhotoButton = document.getElementById("takePhotoButton");
+        const closeWebcamButton = document.getElementById("closeWebcam");
+        const video = document.getElementById("webcam");
+
+        registerForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            openFaceRecognitionPopup();
+        });
+
+        function openFaceRecognitionPopup() {
+            overlay.style.display = "block";
+            webcamPopup.style.display = "block";
+
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    video.srcObject = stream;
+                })
+                .catch((error) => {
+                    console.error("Error accessing webcam:", error);
+                    alert("Could not access webcam. Please try again.");
+                    closeFaceRecognitionPopup();
+                });
+        }
+
+        takePhotoButton.addEventListener("click", () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext("2d");
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const photoData = canvas.toDataURL("image/jpeg");
+            fetch("http://127.0.0.1:5000/api/user/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: document.getElementById("username").value,
+                    password: document.getElementById("password").value,
+                    photoData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                    closeFaceRecognitionPopup();
+                    window.location.href = "{{ url_for('login') }}";
+                } else {
+                    alert(data.error || "Error saving photo.");
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                alert("An unexpected error occurred.");
+            });
+
+        });
+
+        function closeFaceRecognitionPopup() {
+            overlay.style.display = "none";
+            webcamPopup.style.display = "none";
+            const stream = video.srcObject;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            video.srcObject = null;
+        }
+
+        closeWebcamButton.addEventListener("click", closeFaceRecognitionPopup);
+    </script>
+</body>
+</html>

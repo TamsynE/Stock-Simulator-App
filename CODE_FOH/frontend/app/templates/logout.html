@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logout</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='CSS/style.css') }}">
+    <style>
+        /* Container for the logout message */
+        .container {
+            text-align: center;
+            padding: 50px;
+            background-color: #f4f4f4;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 100px auto;
+            width: 60%;
+            max-width: 400px;
+        }
+
+        /* Heading styles */
+        .container h1 {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* Paragraph styles */
+        .container p {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        /* Button style for link */
+        .container a {
+            font-size: 16px;
+            color: black; /* Blue color */
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            background-color: #007BFF;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Hover effect for the link */
+        .container a:hover {
+            background-color: #0252a8;
+        }
+
+        /* Footer styling */
+        footer {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 50px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header section -->
+    <header>
+        <div class="topnav">
+            <div class="login">
+                <a href="{{ url_for('login') }}">Login</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content container -->
+    <div class="container">
+        <h1>Logout Successful</h1>
+        <p>You have been logged out.</p>
+        <a href="{{ url_for('login') }}">Go back to the Login Page</a>
+    </div>
+
+    <!-- Footer section -->
+    <footer>
+        <p>&copy; 2024 Fox Of Hood</p>
+    </footer>
+</body>
+</html>

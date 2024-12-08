@@ -1,0 +1,46 @@
+<header>
+    <div class="topnav">
+        <div class="pages">
+            <a class="{{ 'active' if active_page == 'portfolio' else '' }}" href="{{ url_for('index') }}">Portfolio</a>
+            <a class="{{ 'active' if active_page == 'trade' else '' }}" href="{{ url_for('trade') }}">Trade</a>
+            <a class="{{ 'active' if active_page == 'log' else '' }}" href="{{ url_for('log') }}">Log</a>
+        </div>
+        <div class="logout">
+            <a href="#" onclick="logout(event)" data-url="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </div>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style_index.css') }}">
+</header>
+
+<footer>
+    <p>&copy; 2024 Fox Of Hood</p>
+</footer>
+
+<script>
+    async function logout(event) {
+        event.preventDefault(); // Prevent default link behavior
+        const redirectUrl = event.target.getAttribute('data-url'); // Get redirect URL
+
+        try {
+            const response = await fetch('http://127.0.0.1:5000/api/user/logout', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                alert(result.message); // Show success message
+                window.location.href = redirectUrl; // Redirect to the logout page
+            } else {
+                const error = await response.json();
+                alert(`Error: ${error.error}`); // Show error message
+            }
+        } catch (error) {
+            console.error('Logout failed:', error);
+            alert('An unexpected error occurred. Please try again.');
+        }
+    }
+</script>

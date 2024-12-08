@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Admin Dashboard</title>
+    <style>
+        /* Center-align the entire admin content */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f9f9f9;
+        }
+    
+        header, footer {
+            width: 100%;
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+        }
+    
+        footer {
+            position: fixed;
+            bottom: 0;
+        }
+    
+
+    
+        main.admin-content {
+            text-align: center;
+            width: 80%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    
+        h2, h3 {
+            color: #333;
+        }
+    
+        .admin-section {
+            margin-bottom: 40px;
+        }
+    
+        /* Table Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+    
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+    
+        table th {
+            background-color: #707070;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    
+        table tr:hover {
+            background-color: #e6f7ff;
+            transform: scale(1.005);
+            transition: transform 0.2s ease-in-out;
+        }
+    
+        /* Form Styles */
+        .admin-form {
+            text-align: center;
+        }
+    
+        .admin-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    
+        .admin-form input {
+            width: 40%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    
+        .admin-form button {
+            width: 200px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+    
+        .admin-form button:hover {
+            background-color: #378035;
+        }
+    
+        /* Button Styles */
+        .button {
+            background-color: rgb(248, 71, 71);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    
+        .button:hover {
+            background-color: rgb(182, 48, 48);
+        }
+    </style>
+    
+</head>
+<body>
+    <header>
+        <div class="topnav">
+            <div class="logout">
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </header>
+    
+    <main class="admin-content">
+        <h2>Admin Dashboard</h2>
+        <section class="admin-section">
+            <h3>Create New User</h3>
+            <form id="createUserForm" class="admin-form">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" required>
+                <br><br>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+                <br><br>
+                <button type="submit" class="button">Create User</button>
+            </form>
+        </section>
+
+        <section class="admin-section">
+            <h3>Manage Users</h3>
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="userTable">
+                    <!-- User rows will be populated here via JavaScript -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Fox Of Hood</p>
+    </footer>
+
+    <script>
+        // Fetch users on page load
+        async function fetchUsers() {
+            try {
+                const response = await fetch("http://127.0.0.1:5000/api/user/list", { method: "GET" });
+                if (!response.ok) throw new Error("Error fetching users");
+                
+                const users = await response.json();
+                const userTable = document.getElementById("userTable");
+                userTable.innerHTML = ''; // Clear previous data
+
+                users.forEach(user => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${user.username}</td>
+                        <td>
+                            <button onclick="deleteUser('${user.username}')" class="button">Delete</button>
+                        </td>
+                    `;
+                    userTable.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error fetching users:", error);
+                alert("Failed to load user list. Please try again.");
+            }
+        }
+
+        // Call the fetchUsers function on page load
+        document.addEventListener("DOMContentLoaded", fetchUsers);
+
+        // Create a new user
+        document.getElementById("createUserForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value;
+
+            if (!username || !password) {
+                alert("Both username and password are required.");
+                return;
+            }
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/api/user/create_user", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    fetchUsers(); // Refresh the user list
+                    alert("User created successfully.");
+                    document.getElementById("createUserForm").reset(); // Clear the form
+                } else {
+                    alert(result.error || "Failed to create user");
+                }
+            } catch (error) {
+                console.error("Error creating user:", error);
+                alert("Failed to create user. Please try again.");
+            }
+        });
+
+        // Delete a user
+        async function deleteUser(username) {
+            if (confirm(`Are you sure you want to delete ${username}?`)) {
+                try {
+                    const response = await fetch("http://127.0.0.1:5000/api/user/delete_user", {
+                        method: "DELETE",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username })
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        fetchUsers(); // Refresh the user list
+                        alert("User deleted successfully.");
+                    } else {
+                        alert(result.error || "Failed to delete user");
+                    }
+                } catch (error) {
+                    console.error("Error deleting user:", error);
+                    alert("Failed to delete user. Please try again.");
+                }
+            }
+        }
+
+    </script>
+</body>
+</html>

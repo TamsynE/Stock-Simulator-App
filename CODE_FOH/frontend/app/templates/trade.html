@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script type="module" src="{{ url_for('static', filename='utils/chartUtils.js') }}"></script>
+    <title>Trade Stocks</title>
+    <style>
+        /* General Page Layout */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+    
+        main {
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+    
+        h1, h2 {
+            text-align: center;
+            color: #333;
+            font-size: 36px;
+        }
+    
+        /* Section Styling */
+        section {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+    
+        /* Flex Container for Tables and Charts */
+        .content-wrapper {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+    
+        .table-container, .chart-container {
+            flex: 1;
+            min-width: 400px;
+        }
+    
+        /* Search Container */
+        .search-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+    
+        #stock-search {
+            width: calc(100% - 100px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+    
+        #search-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #707070;
+            color: white;
+            cursor: pointer;
+        }
+    
+        #search-button:hover {
+            background-color: #505050;
+        }
+    
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+    
+        th, td {
+            padding: 12px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+    
+        th {
+            background-color: #707070;
+            color: white;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+    
+
+
+        /* Row Hover effect */
+        tr:hover {
+            background-color: #f4f4f4;  /* Light blue background on hover */
+            transform: scale(1.005);  /* Slightly enlarge row on hover for interactivity */
+            transition: transform 0.2s ease-in-out;
+        }
+    
+        .quantity-input {
+            width: 80px;
+            padding: 5px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    
+        /* Buttons for Transactions */
+        .buy-button, .sell-button, .schedule-buy-button, .schedule-sell-button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            color: white;
+        }
+    
+        .buy-button {
+            background-color: #28a745;
+        }
+    
+        .sell-button {
+            background-color: #dc3545;
+        }
+    
+        .schedule-buy-button, .schedule-sell-button {
+            margin-top: 5px;
+            background-color: #007bff;
+        }
+    
+        .buy-button:hover {
+            background-color: #218838;
+        }
+    
+        .sell-button:hover {
+            background-color: #c82333;
+        }
+    
+        .schedule-buy-button:hover, .schedule-sell-button:hover {
+            background-color: #0056b3;
+        }
+    
+        /* Chart Container */
+        .chart-container {
+            background-color: #f5f5fa;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+    
+        #stocks-chart, #search-results-chart {
+            width: 100%;
+            height: 400px;
+        }
+    
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .content-wrapper {
+                flex-direction: column;
+            }
+    
+            .table-container, .chart-container {
+                min-width: 100%;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    {% include 'header.html' %}
+    <main>
+        <section>
+            <h2>Stocks</h2>
+            <div class="content-wrapper"> <!-- Flex container -->
+                <div class="table-container"> <!-- Table container -->
+                    <div class="search-container"> <!-- Search container -->
+                        <input type="text" id="stock-search" placeholder="Search for a stock..." />
+                        <button id="search-button">Search</button>
+                    </div>
+        
+                    <div class="search-results"> <!-- Results container -->
+                        <!-- <h3>Search Results</h3> -->
+                        <div class="result-table-container"> <!-- Result table container -->
+                            <table id="search-results-table">
+                                <thead>
+                                    <tr>
+                                        <th>SYMBOL</th>
+                                        <th>NAME</th>
+                                        <th>PRICE</th>
+                                        <th>QUANTITY</th>
+                                        <th>ACTION</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="search-results-table-body">
+                                    <!-- Dynamic rows for search results will be added here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                    
+                </div>
+                    <div class="result-chart-container"> <!-- Result chart container -->
+                        <div id="search-results-chart"></div>
+                    </div>
+                    <h2>Top Stocks</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>SYMBOL</th>
+                                <th>NAME</th>
+                                <th>PRICE</th>
+                                <th>QUANTITY</th>
+                                <th>ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stocks-table-body">
+                            <!-- Dynamic rows will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="chart-container"> <!-- Chart container -->
+                <div id="stocks-chart"></div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module">
+        import { drawBarChart, drawLineChart } from "{{ url_for('static', filename='utils/chartUtils.js') }}";
+
+        async function fetchStockDataAndDrawChart() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/stock/stocklist');
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const stocks = await response.json();
+                const tableBody = document.getElementById('stocks-table-body');
+                const stockPrices = [];
+
+                Object.entries(stocks).forEach(([ticker, data]) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+    <td>${ticker}</td>
+    <td>${data.name}</td>
+    <td>$${parseFloat(data.price).toFixed(2)}</td>
+    <td><input type="number" class="quantity-input" placeholder="Quantity" min="1" /></td>
+    <td>
+        <button class="buy-button" data-symbol="${ticker}" data-price="${data.price}">Buy</button>
+        <button class="sell-button" data-symbol="${ticker}" data-price="${data.price}">Sell</button>
+        <br><br>
+        <div class="schedule-buttons">
+            <input type="datetime-local" class="schedule-datetime" placeholder="Schedule Time" />
+            <br>
+            <button class="schedule-buy-button" data-symbol="${ticker}" data-price="${data.price}">Schedule Buy</button>
+            <button class="schedule-sell-button" data-symbol="${ticker}" data-price="${data.price}">Schedule Sell</button>
+        </div>
+    </td>
+`;
+                    tableBody.appendChild(row);
+                    stockPrices.push({ symbol: ticker, price: data.price });
+                });
+
+                drawBarChart(stockPrices);
+            } catch (error) {
+                console.error('Error fetching stock data:', error);
+            }
+        }
+
+        async function searchStock() {
+    let searchInput = document.getElementById('stock-search').value.trim().toUpperCase();
+
+    // Set default to 'NVDA' if searchInput is empty
+    if (!searchInput) {
+        searchInput = 'NVDA';
+    }
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/api/stock/stockSearch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ stock_search: searchInput }),
+        });
+
+        if (!response.ok) throw new Error('Network response was not ok');
+
+        const result = await response.json();
+        const resultTableBody = document.getElementById('search-results-table-body');
+        const resultChartContainer = document.getElementById('search-results-chart');
+        resultTableBody.innerHTML = ''; // Clear previous results
+        resultChartContainer.innerHTML = ''; // Clear previous chart
+
+        if (result.error) {
+            alert(result.error); // Show error message if stock not found
+            return;
+        }
+
+        // Create and append a row to the results table
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${result.stock.ticker}</td>
+            <td>${result.stock.name}</td>
+            <td>$${parseFloat(result.stock.price).toFixed(2)}</td>
+            <td><input type="number" class="quantity-input" placeholder="Quantity" min="1" /></td>
+            <td>
+                <button class="buy-button" data-symbol="${result.stock.ticker}" data-price="${result.stock.price}">Buy</button>
+                <button class="sell-button" data-symbol="${result.stock.ticker}" data-price="${result.stock.price}">Sell</button>
+                <br><br>
+                <div class="schedule-buttons">
+                    <input type="datetime-local" class="schedule-datetime" placeholder="Schedule Time" />
+                    <br>
+                    <button class="schedule-buy-button" data-symbol="${result.stock.ticker}" data-price="${result.stock.price}">Schedule Buy</button>
+                    <button class="schedule-sell-button" data-symbol="${result.stock.ticker}" data-price="${result.stock.price}">Schedule Sell</button>
+                </div>
+            </td>
+        `;
+        resultTableBody.appendChild(row);
+
+        // Prepare data for the chart
+        const historicalData = Object.entries(result.history).map(([date, price]) => ({
+            date: date,
+            price: price,
+        }));
+
+        drawLineChart(historicalData); // Render historical data chart
+    } catch (error) {
+        console.error('Error searching for stock:', error);
+    }
+}
+
+// Execute the function on page load
+window.addEventListener('DOMContentLoaded', () => {
+    searchStock();
+});
+
+
+        async function handleTransaction(action, symbol, price, quantity) {
+            // Retrieve data from session storage
+            const sessionDataString = sessionStorage.getItem("session");
+            const sessionData = JSON.parse(sessionDataString);
+            const userSession = sessionData.username || "Guest";
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/api/transaction/${action}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ticker: symbol,
+                        numShares: quantity,
+                        username: userSession
+                    }),
+                });
+
+                if (!response.ok) throw new Error('Transaction failed');
+
+                const result = await response.json();
+                alert(`Transaction successful: ${action} ${quantity} of ${symbol}`);
+
+
+
+                // Call fetchPortfolio on the parent window (index.html) if open
+                if (window.opener && !window.opener.closed) {
+                    window.opener.fetchPortfolio();
+                }
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+        async function handleScheduledTransaction(action, symbol, quantity, datetime) {
+    const sessionDataString = sessionStorage.getItem("session");
+    const sessionData = JSON.parse(sessionDataString);
+    const userSession = sessionData.username || "Guest";
+
+    try {
+        const response = await fetch(`http://127.0.0.1:5000/api/transaction/${action}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ticker: symbol,
+                numShares: quantity,
+                username: userSession,
+                scheduleTime: datetime
+            }),
+        });
+
+        if (!response.ok) throw new Error('Scheduling transaction failed');
+
+        const result = await response.json();
+        alert(`Scheduled transaction successful: ${action} ${quantity} of ${symbol} at ${datetime}`);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+        document.addEventListener('click', (event) => {
+            if (event.target.classList.contains('buy-button')) {
+                const symbol = event.target.getAttribute('data-symbol');
+                const price = event.target.getAttribute('data-price');
+                const quantity = event.target.closest('tr').querySelector('.quantity-input').value;
+
+                if (quantity) {
+                    handleTransaction('buy', symbol, price, quantity);
+                } else {
+                    alert('Please enter a quantity.');
+                }
+            }
+
+            if (event.target.classList.contains('sell-button')) {
+                const symbol = event.target.getAttribute('data-symbol');
+                const price = event.target.getAttribute('data-price');
+                const quantity = event.target.closest('tr').querySelector('.quantity-input').value;
+
+                if (quantity) {
+                    handleTransaction('sell', symbol, price, quantity);
+                } else {
+                    alert('Please enter a quantity.');
+                }
+            }
+            if (event.target.classList.contains('schedule-buy-button')) {
+        const symbol = event.target.getAttribute('data-symbol');
+        const quantity = event.target.closest('tr').querySelector('.quantity-input').value;
+        const datetime = event.target.closest('tr').querySelector('.schedule-datetime').value;
+
+        if (quantity && datetime) {
+            handleScheduledTransaction('schedule_buy', symbol, quantity, datetime);
+        } else {
+            alert('Please enter both a quantity and a schedule time.');
+        }
+    }
+
+    if (event.target.classList.contains('schedule-sell-button')) {
+        const symbol = event.target.getAttribute('data-symbol');
+        const quantity = event.target.closest('tr').querySelector('.quantity-input').value;
+        const datetime = event.target.closest('tr').querySelector('.schedule-datetime').value;
+
+        if (quantity && datetime) {
+            handleScheduledTransaction('schedule_sell', symbol, quantity, datetime);
+        } else {
+            alert('Please enter both a quantity and a schedule time.');
+        }
+    }
+});
+
+        document.getElementById('search-button').addEventListener('click', searchStock);
+        window.onload = fetchStockDataAndDrawChart;
+    </script>
+</body>
+</html>

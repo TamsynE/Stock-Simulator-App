@@ -69,14 +69,17 @@ See requirements.txt files in frontend and backend for libraries and dependencie
 
 
 ## Running backend
+```
 export FLASK_APP=backend/app
 
 flask init-db
 
 flask --app backend/server.py run
+```
 
 ## Running frontend
+```
 python frontend/interface.py
-
+```
 ## FINAL DEMO
 https://www.youtube.com/watch?v=7XaVBbRt8u4 
